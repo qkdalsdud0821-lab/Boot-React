@@ -1,8 +1,9 @@
-import { type MouseEvent, useActionState, useState } from "react";
+import { useActionState, useState, type MouseEvent } from "react";
 import useCustomMove from "../../hooks/useCustomMove";
-import axios from "axios";
+import jwtAxios from "../../util/jwtUtil";
 import PendingModal from "../common/pendingModal";
 import ResultModal from "../common/resultModal";
+
 
 interface ProductTaskResult {
     actionType: string,
@@ -15,9 +16,8 @@ const initState: ProductTaskResult = {
   result: ""
 }
 
-const modifyDeleteAsyncAction = async ( state:ProductTaskResult, formData:FormData): Promise<ProductTaskResult> => {
-
-    console.log(state)
+const modifyDeleteAsyncAction = async ( state:ProductTaskResult, formData:FormData):
+Promise<ProductTaskResult> => {
 
     const pno = formData.get("pno")
 
@@ -26,12 +26,16 @@ const modifyDeleteAsyncAction = async ( state:ProductTaskResult, formData:FormDa
     let res;
 
     if(actionType ==='modify'){
-        res = await axios.put(`http://localhost:8080/api/products/${pno}`, formData )
+
+        res = await jwtAxios.put(`http://localhost:8080/api/products/${pno}`, formData )
+
     }else if(actionType ==='delete') {
-        res = await axios.delete(`http://localhost:8080/api/products/${pno}` )
+
+        res = await jwtAxios.delete(`http://localhost:8080/api/products/${pno}` )
     }
 
-    return { actionType: actionType, result: res?.data?.RESULT}
+    return { actionType: actionType,   result: res?.data?.RESULT}
+
 }
 
 function ModifyComponent( {product}: {product:ProductDTO}) {
@@ -40,109 +44,113 @@ function ModifyComponent( {product}: {product:ProductDTO}) {
 
   const [images, setImages] = useState<string[]>([...product.uploadFileNames]);
 
-  const deleteOldImages = (event: MouseEvent<HTMLButtonElement> , target: string) => {
+  const deleteOldImages = (event: MouseEvent<HTMLButtonElement> ,     target: string) => {
 
-      event.preventDefault()
-      event.stopPropagation()
+       event.preventDefault()
 
-      setImages(prev => prev.filter(img => img !== target));
+       event.stopPropagation()
+
+       setImages(prev => prev.filter(img => img !== target));
+
   };
 
   const [state, action, isPending] = useActionState(modifyDeleteAsyncAction, initState)
 
   return (
-    <div className = "border-2 border-sky-200 mt-10 m-2 p-4 bg-white">
+       <div className = "border-2 border-sky-200 mt-10 m-2 p-4 bg-white">
 
-     {isPending && <PendingModal/>}
+        {isPending && <PendingModal/>}
+        {state.result   && <ResultModal title="처리완료" content="처리 완료" callbackFn={() => {
+             if(state.actionType ==='modify'){
+               moveToRead(product.pno)
+             }
+             if(state.actionType === 'delete') {
+               moveToList()
+             }
+        }}    />}
 
-     {state.result && <ResultModal title="처리완료" content="처리 완료" callbackFn={() => {
-          if(state.actionType ==='modify'){
-            moveToRead(product.pno)
-          }
-          if(state.actionType === 'delete') {
-            moveToList()
-          }
-     }} />}
+       <form action={action} >
+       <div className="flex justify-center mt-10">
+           <div className="relative mb-4 flex w-full flex-wrap items-stretch">
+             <div className="w-1/5 p-6 text-right font-bold">PNO</div>
+             <input className="w-4/5 p-6 rounded-r border border-solid border-neutral-300 shadow-md"
+             name="pno" required defaultValue={product.pno}>
+             </input>
+           </div>
+         </div>
+         <div className="flex justify-center">
+           <div className="relative mb-4 flex w-full flex-wrap items-stretch">
+             <div className="w-1/5 p-6 text-right font-bold">PNAME</div>
+             <input className="w-4/5 p-6 rounded-r border border-solid border-neutral-300 shadow-md"
+             name="pname" required defaultValue={product.pname}>
+             </input>
+           </div>
+         </div>
+         <div className="flex justify-center">
+           <div className="relative mb-4 flex w-full flex-wrap items-stretch">
+             <div className="w-1/5 p-6 text-right font-bold">PRICE</div>
+             <input
+             className="w-4/5 p-6 rounded-r border border-solid border-neutral-300 shadow-md"
+             name="price" type={'number'} defaultValue={product.price}>
+             </input>
+           </div>
+         </div>
+         <div className="flex justify-center">
+           <div className="relative mb-4 flex w-full flex-wrap items-stretch">
+             <div className="w-1/5 p-6 text-right font-bold">PDESC</div>
+             <textarea
+             className="w-4/5 p-6 rounded-r border border-solid border-neutral-300 shadow-md resize-y"
+             name="pdesc" rows={4} required defaultValue={product.pdesc}>
+             </textarea>
+           </div>
+         </div>
+         <div className="flex justify-center">
+           <div className="relative mb-4 flex w-full flex-wrap items-stretch">
+           <div className="w-1/5 p-6 text-right font-bold">Files</div>
+           <input
+             className="w-4/5 p-6 rounded-r border border-solid border-neutral-300 shadow-md"
+             type={'file'}
+             name="files"
+             multiple={true}>
+           </input>
+           </div>
+         </div>
 
-    <form action={action} >
-      <div className="flex justify-center mt-10">
-        <div className="relative mb-4 flex w-full flex-wrap items-stretch">
-          <div className="w-1/5 p-6 text-right font-bold">PNO</div>
-          <input className="w-4/5 p-6 rounded-r border border-solid border-neutral-300 shadow-md"
-          name="pno" required defaultValue={product.pno}>
-          </input>
-        </div>
-      </div>
-      <div className="flex justify-center">
-        <div className="relative mb-4 flex w-full flex-wrap items-stretch">
-          <div className="w-1/5 p-6 text-right font-bold">PNAME</div>
-          <input className="w-4/5 p-6 rounded-r border border-solid border-neutral-300 shadow-md"
-          name="pname" required defaultValue={product.pname}>
-          </input>
-        </div>
-      </div>
-      <div className="flex justify-center">
-        <div className="relative mb-4 flex w-full flex-wrap items-stretch">
-          <div className="w-1/5 p-6 text-right font-bold">PRICE</div>
-          <input
-          className="w-4/5 p-6 rounded-r border border-solid border-neutral-300 shadow-md"
-          name="price" type={'number'} defaultValue={product.price}>
-          </input>
-        </div>
-      </div>
-      <div className="flex justify-center">
-        <div className="relative mb-4 flex w-full flex-wrap items-stretch">
-          <div className="w-1/5 p-6 text-right font-bold">PDESC</div>
-          <textarea
-          className="w-4/5 p-6 rounded-r border border-solid border-neutral-300 shadow-md resize-y"
-          name="pdesc" rows={4} required defaultValue={product.pdesc}>
-          </textarea>
-        </div>
-      </div>
-      <div className="flex justify-center">
-        <div className="relative mb-4 flex w-full flex-wrap items-stretch">
-        <div className="w-1/5 p-6 text-right font-bold">Files</div>
-        <input
-          className="w-4/5 p-6 rounded-r border border-solid border-neutral-300 shadow-md"
-          type={'file'}
-          name="files"
-          multiple={true}>
-        </input>
-        </div>
-      </div>
+         <div className="w-full justify-center flex flex-col m-auto items-center">
+         {images.map( (imgFile, i) =>
+               <div
+                 className="flex justify-center flex-col w-1/3"
+                 key = {i}>
+                 <button className="bg-blue-500 text-3xl text-white" onClick={(event) =>
+                   deleteOldImages(event,imgFile)}>DELETE</button>
+                 <img
+                 alt ="img"
+                 src={`http://localhost:8080/api/products/view/s_${imgFile}`}/>
 
-      <div className="w-full justify-center flex flex-col m-auto items-center">
-      {images.map( (imgFile, i) =>
-        <div
-          className="flex justify-center flex-col w-1/3"
-          key = {i}>
-          <button className="bg-blue-500 text-3xl text-white" onClick={(event) => deleteOldImages(event,imgFile)}>DELETE</button>
-          <img
-          alt ="img"
-          src={`http://localhost:8080/api/products/view/s_${imgFile}`}/>
-          <input type="hidden" name="uploadFileNames" value={imgFile}/>
-        </div>
-      )}
-      </div>
+                 <input type="hidden" name="uploadFileNames" value={imgFile}/>
+               </div>
+         )}
+         </div>
 
-      <div className="flex justify-end p-4">
-        <button type="submit" name='actionType' value='delete'
-        className="rounded p-4 m-2 text-xl w-32 text-white bg-red-500">
-          Delete
-        </button>
-        <button type="submit" name='actionType' value='modify'
-        className="inline-block rounded p-4 m-2 text-xl w-32 text-white bg-orange-500">
-          Modify
-        </button>
-        <button type="button"
-        className="rounded p-4 m-2 text-xl w-32 text-white bg-blue-500"
-        onClick={() => moveToList()}
-        >
-          List
-        </button>
-      </div>
-    </form>
-    </div>
+         <div className="flex justify-end p-4">
+           <button type="submit" name='actionType' value='delete'
+           className="rounded p-4 m-2 text-xl w-32 text-white bg-red-500">
+             Delete
+           </button>
+           <button type="submit" name='actionType' value='modify'
+           className="inline-block rounded p-4 m-2 text-xl w-32 text-white bg-orange-500">
+             Modify
+           </button>
+           <button type="button"
+           className="rounded p-4 m-2 text-xl w-32 text-white bg-blue-500"
+           onClick={() => moveToList()}
+           >
+             List
+           </button>
+         </div>
+
+       </form>
+     </div>
   )
 }
 
